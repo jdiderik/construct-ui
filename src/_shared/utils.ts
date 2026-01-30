@@ -11,30 +11,6 @@ export function safeCall(func: any, ...args: any[]) {
   }
 }
 
-export function getClosest(el: any, selector: string): HTMLElement | null {
-  if (el.matches(selector)) return el;
-
-  if (!Element.prototype.matches) {
-    Element.prototype.matches =
-      (Element as any).prototype.msMatchesSelector ||
-      Element.prototype.webkitMatchesSelector ||
-      /* tslint:disable */
-      function (s) {
-        const matches = (this.document || this.ownerDocument).querySelectorAll(s);
-        let i = matches.length;
-        while (--i >= 0 && matches.item(i) !== this) { }
-        return i > -1;
-      };
-    /* tslint:enable */
-  }
-
-  for (; el && el !== document; el = el.parentNode) {
-    if (el.matches(selector)) return el;
-  }
-
-  return null;
-}
-
 export function getScrollbarWidth() {
   const el = document.createElement('div');
   el.style.width = '100px';
@@ -60,7 +36,7 @@ export function elementIsOrContains(element: HTMLElement, testElement: HTMLEleme
 
 export function normalizeStyle(style?: Style) {
   if (typeof style === 'string') {
-    const result = {} as Object;
+    const result = {} as any;
     const attributes = style.replace(/\s/g, '').split(';');
 
     for (let i = 0; i < attributes.length; i++) {
@@ -109,3 +85,6 @@ function shouldAddPadding(element: HTMLElement) {
 export function isNullOrEmpty(item: any) {
   return item == null || item === '' || item === false;
 }
+
+type ObjectKeys<T extends object> = `${Exclude<keyof T, symbol>}`;
+export const getObjectKeys = Object.keys as <Type extends object>(value: Type) => Array<ObjectKeys<Type>>;

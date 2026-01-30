@@ -1,12 +1,10 @@
 import m from 'mithril';
 import { Content, Nav } from './';
 import { IDocumentationData } from '..';
-import { ResponsiveManager, Drawer, Icons, Button, getClosest } from '@/';
+import { ResponsiveManager, Drawer, Icons, Button } from '@/';
+import logoSrc from '../logo.svg';
 
-// tslint:disable-next-line:no-var-requires
-const logoSrc = require('../logo.svg');
-
-export default class Main implements m.Component<IDocumentationData> {
+export class Main implements m.Component<IDocumentationData> {
   private isDrawerOpen: boolean = false;
   private scrollPosition: number;
 
@@ -29,6 +27,7 @@ export default class Main implements m.Component<IDocumentationData> {
         m(Button, {
           basic: true,
           iconLeft: Icons.MENU,
+          label: 'Menu',
           onclick: () => this.isDrawerOpen = true,
           size: 'xs'
         })
@@ -52,12 +51,13 @@ export default class Main implements m.Component<IDocumentationData> {
   private closeDrawer = () => this.isDrawerOpen = false;
 
   private handleLinkClick = (e: Event) => {
-    const contentEl = getClosest(e.target, '.Docs-nav');
+    const target = e.target as HTMLElement;
+    const contentEl = target.closest('.Docs-nav');
     this.scrollPosition = contentEl!.scrollTop;
-  }
+  };
 
   private handleDrawerOnOpened = (el: HTMLElement) => {
     const contentEl = el.querySelector('.Docs-nav');
     contentEl!.scrollTop = this.scrollPosition;
-  }
+  };
 }

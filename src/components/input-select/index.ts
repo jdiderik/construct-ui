@@ -6,7 +6,7 @@ import { QueryList, IQueryableAttrs, IQueryListEvents } from '../query-list';
 import { Popover, IPopoverAttrs } from '../popover';
 import { Input, IInputAttrs } from '../input';
 import { Spinner } from '../spinner';
-import { safeCall, Classes, getClosest, Keys } from '../../_shared';
+import { safeCall, Classes, Keys } from '../../_shared';
 
 export interface IInputSelectAttrs<T> extends IQueryableAttrs<T> {
   /**
@@ -40,7 +40,7 @@ export interface IInputSelectAttrs<T> extends IQueryableAttrs<T> {
   openOnDownKey?: boolean;
 }
 
-export class InputSelect<T> extends AbstractComponent<IInputSelectAttrs<T>>  {
+export class InputSelect<T> extends AbstractComponent<IInputSelectAttrs<T>> {
   private queryList = QueryList.ofType<T>();
   private isOpen: boolean;
   private query: string = '';
@@ -144,12 +144,12 @@ export class InputSelect<T> extends AbstractComponent<IInputSelectAttrs<T>>  {
   private handleInput = (e: Event) => {
     this.handleSearchDebounce(e);
     (e as any).redraw = false;
-  }
+  };
 
   private handleInputFocus = (e: Event) => {
     this.isOpen = true;
     safeCall(this.attrs.inputAttrs!.onfocus, e);
-  }
+  };
 
   private handleInputKeyDown = (e: KeyboardEvent) => {
     if (e.which === Keys.ARROW_DOWN && this.attrs.openOnDownKey) {
@@ -166,7 +166,7 @@ export class InputSelect<T> extends AbstractComponent<IInputSelectAttrs<T>>  {
 
     safeCall(this.attrs.inputAttrs!.onkeydown, e);
     (e as any).redraw = false;
-  }
+  };
 
   private handleSearchDebounce = debounce((e: Event) => {
     const value = (e.target as HTMLInputElement).value;
@@ -179,7 +179,7 @@ export class InputSelect<T> extends AbstractComponent<IInputSelectAttrs<T>>  {
   private handleActiveItemChange = (activeItem: T, index: number) => {
     this.activeIndex = index;
     safeCall(this.attrs.onActiveItemChange, activeItem, index);
-  }
+  };
 
   private handleSelect = (item: T, e: Event) => {
     const { onSelect, closeOnSelect } = this.attrs;
@@ -192,22 +192,23 @@ export class InputSelect<T> extends AbstractComponent<IInputSelectAttrs<T>>  {
     }
 
     safeCall(onSelect, item, e);
-  }
+  };
 
   private handlePopoverInteraction = (nextOpenState: boolean, e: Event) => {
-    const isClickOnInput = getClosest(e.target, `.${Classes.INPUT}`);
+    const target = e.target as HTMLElement;
+    const isClickOnInput = target.closest(`.${Classes.INPUT}`);
 
     if (!isClickOnInput) {
       this.isOpen = false;
     }
 
     safeCall(this.attrs.popoverAttrs!, nextOpenState, e);
-  }
+  };
 
   private handlePopoverClosed = () => {
     this.query = '';
     safeCall(this.attrs.popoverAttrs!.onClosed);
-  }
+  };
 
   private get inputEl() {
     return this.input.dom &&

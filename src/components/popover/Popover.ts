@@ -1,7 +1,7 @@
 import m from 'mithril';
 import classnames from 'classnames';
-import PopperJS, { Boundary } from 'popper.js';
-import { Classes, IAttrs, Style, safeCall, getClosest, elementIsOrContains } from '../../_shared';
+import { createPopper, StrictModifiers, Instance, Placement } from '@popperjs/core';
+import { Classes, IAttrs, Style, safeCall, elementIsOrContains } from '../../_shared';
 import { AbstractComponent } from '../abstract-component';
 import { IOverlayableAttrs, Overlay } from '../overlay';
 import { PopoverInteraction, PopoverPosition } from './popoverTypes';
@@ -9,10 +9,9 @@ import { PopoverInteraction, PopoverPosition } from './popoverTypes';
 export interface IPopoverAttrs extends IOverlayableAttrs, IAttrs {
   /**
    * Set the bounding box.
-   * see <a href="https://popper.js.org/popper-documentation.html#modifiers..preventOverflow">Here</a> for more details
    * @default 'window'
    */
-  boundariesEl?: Boundary | Element;
+  boundariesEl?: 'window' | 'scrollParent' | Element;
 
   /** Close the popover on inner content click */
   closeOnContentClick?: boolean;
@@ -57,9 +56,9 @@ export interface IPopoverAttrs extends IOverlayableAttrs, IAttrs {
 
   /**
    * Options to pass to the PopperJS instance;
-   * see <a href="https://popper.js.org/popper-documentation.html#modifiers">HERE</a> for more details
+   * see <a href="https://popper.js.org/docs/v2/modifiers/">HERE</a> for more details
    */
-  modifiers?: PopperJS.Modifiers;
+  modifiers?: StrictModifiers[];
 
   /**
    * Position relative to trigger element
@@ -84,6 +83,12 @@ export interface IPopoverAttrs extends IOverlayableAttrs, IAttrs {
 
   /** Trigger element */
   trigger: m.Vnode<any, any>;
+
+  /**
+   * Class added to trigger element on interaction
+   * @default 'cui-active'
+   */
+  triggerActiveClass?: string;
 }
 
 export interface IPopoverTriggerAttrs extends IAttrs {
@@ -97,7 +102,7 @@ export interface IPopoverTriggerAttrs extends IAttrs {
 
 export class Popover extends AbstractComponent<IPopoverAttrs> {
   private isOpen: boolean;
-  private popper?: PopperJS & { options?: PopperJS.PopperOptions };
+  private popper?: Instance;
   private trigger: m.VnodeDOM<IPopoverTriggerAttrs>;
 
   public getDefaultAttrs() {
@@ -109,7 +114,8 @@ export class Popover extends AbstractComponent<IPopoverAttrs> {
       hoverOpenDelay: 0,
       interactionType: 'click',
       position: 'bottom',
-      hasArrow: true
+      hasArrow: true,
+      triggerActiveClass: Classes.ACTIVE
     } as IPopoverAttrs;
   }
 
@@ -134,8 +140,9 @@ export class Popover extends AbstractComponent<IPopoverAttrs> {
 
   public onupdate() {
     if (this.popper) {
-      this.popper.options.placement = this.attrs.position as PopperJS.Placement;
-      this.popper.scheduleUpdate();
+      this.popper.setOptions({
+        placement: this.attrs.position as Placement
+      });
     }
   }
 
@@ -167,9 +174,9 @@ export class Popover extends AbstractComponent<IPopoverAttrs> {
       onmouseleave: this.handleTriggerMouseLeave,
       style
     }, [
-        hasArrow && m(`.${Classes.POPOVER_ARROW}`),
-        m(`.${Classes.POPOVER_CONTENT}`, content)
-      ]);
+      hasArrow && m(`.${Classes.POPOVER_ARROW}`),
+      m(`.${Classes.POPOVER_CONTENT}`, content)
+    ]);
 
     return m.fragment({}, [
       this.trigger,
@@ -197,12 +204,12 @@ export class Popover extends AbstractComponent<IPopoverAttrs> {
       this.createPopper(popoverEl as HTMLElement);
       safeCall(this.attrs.onOpened, contentEl);
     }
-  }
+  };
 
   private handleClosed = () => {
     this.destroyPopper();
     safeCall(this.attrs.onClosed);
-  }
+  };
 
   private handleOverlayClose = (e: Event) => {
     const target = e.target as HTMLElement;
@@ -211,36 +218,44 @@ export class Popover extends AbstractComponent<IPopoverAttrs> {
     if (!isTriggerClick || e instanceof KeyboardEvent) {
       this.isControlled ? this.handleInteraction(e) : this.isOpen = false;
     }
-  }
+  };
 
   private createPopper(el: HTMLElement) {
-    const { position, hasArrow, boundariesEl, modifiers } = this.attrs;
+    const { position, hasArrow, boundariesEl, modifiers = [] } = this.attrs;
 
-    const options = {
-      placement: position,
-      modifiers: {
-        arrow: {
-          enabled: hasArrow,
-          element: `.${Classes.POPOVER_ARROW}`
-        },
-        offset: {
-          enabled: hasArrow,
-          fn: (data) => this.getContentOffset(data, el)
-        },
-        preventOverflow: {
-          enabled: true,
-          boundariesElement: boundariesEl,
-          padding: 0
-        },
-        ...modifiers
+    const defaultModifiers: StrictModifiers[] = [{
+      name: 'arrow',
+      enabled: hasArrow,
+      options: {
+        element: `.${Classes.POPOVER_ARROW}`,
+        padding: 0
       }
-    } as PopperJS.PopperOptions;
+    }, {
+      name: 'offset',
+      options: {
+        offset: ({ placement }) => this.getContentOffset(placement, el)
+      }
+    }, {
+      name: 'preventOverflow',
+      enabled: true,
+      options: {
+        padding: 0,
+        boundary: typeof boundariesEl === 'string' ? 'clippingParents' : boundariesEl,
+        altBoundary: boundariesEl == 'scrollParent'
+      }
+    }];
 
-    this.popper = new PopperJS(
+    const combinedModifiers =
+      defaultModifiers
+        //.filter(cm => modifiers.some(m => m.name !== cm.name))
+        .concat(modifiers);
+
+    this.popper = createPopper<StrictModifiers>(
       this.trigger.dom,
-      el,
-      options
-    );
+      el, {
+      placement: position,
+      modifiers: combinedModifiers
+    });
   }
 
   private destroyPopper() {
@@ -262,7 +277,7 @@ export class Popover extends AbstractComponent<IPopoverAttrs> {
     if (this.isOpen) {
       triggerAttrs.class = classnames(
         triggerAttrs.className || triggerAttrs.class,
-        Classes.ACTIVE,
+        this.attrs.triggerActiveClass,
         Classes.POPOVER_TRIGGER_ACTIVE
       );
     } else triggerAttrs.class = triggerAttrs.className || triggerAttrs.class || '';
@@ -314,12 +329,12 @@ export class Popover extends AbstractComponent<IPopoverAttrs> {
 
   private handlePopoverClick = (e: Event) => {
     const target = e.target as HTMLElement;
-    const hasDimiss = getClosest(target, `.${Classes.POPOVER_DISSMISS}`) != null;
+    const hasDimiss = target.closest(`.${Classes.POPOVER_DISSMISS}`) != null;
 
     if (this.attrs.closeOnContentClick || hasDimiss) {
       this.isControlled ? this.handleInteraction(e) : this.isOpen = false;
     } else (e as any).redraw = false;
-  }
+  };
 
   private handleTriggerClick() {
     this.isOpen = !this.isOpen;
@@ -357,7 +372,7 @@ export class Popover extends AbstractComponent<IPopoverAttrs> {
     }
 
     (e as any).redraw = false;
-  }
+  };
 
   private handleTriggerMouseLeave = (e: MouseEvent) => {
     const { hoverCloseDelay } = this.attrs;
@@ -377,7 +392,7 @@ export class Popover extends AbstractComponent<IPopoverAttrs> {
     }
 
     (e as any).redraw = false;
-  }
+  };
 
   private isHoverInteraction() {
     const interactionType = this.attrs.interactionType;
@@ -393,20 +408,11 @@ export class Popover extends AbstractComponent<IPopoverAttrs> {
     return this.attrs.isOpen != null;
   }
 
-  private getContentOffset = (data: PopperJS.Data, containerEl: HTMLElement) => {
-    if (!this.attrs.hasArrow) {
-      return data;
-    }
+  private getContentOffset = (placement: Placement, containerEl: HTMLElement) => {
+    if (!this.attrs.hasArrow || this.popper?.state.placement != placement)
+      return [0, 0] as [number, number];
 
-    const placement = data.placement;
-    const isHorizontal = placement.includes('left') || placement.includes('right');
-    const position = isHorizontal ? 'left' : 'top';
-    const arrowSize = (containerEl.children[0] as HTMLElement).clientHeight + 1;
-
-    const offset = placement.includes('top') || placement.includes('left') ? -arrowSize : arrowSize;
-
-    data.offsets.popper[position] += offset;
-
-    return data;
-  }
+    const arrowSize = (containerEl.children[0] as HTMLElement).clientWidth;
+    return [0, arrowSize] as [number, number];
+  };
 }

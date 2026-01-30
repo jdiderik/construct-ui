@@ -1,5 +1,5 @@
 import m from 'mithril';
-import { Button, Icons, Select, Switch, Toaster, ToasterPosition, Intent, Size } from '@/';
+import { Button, Icons, Select, Switch, Toaster, ToasterPosition, Intent, Size, getObjectKeys } from '@/';
 import { IntentSelect, Example, SizeSelect } from '@shared/examples';
 
 const EXAMPLE_SRC = 'components/toast/examples/default.ts';
@@ -52,7 +52,7 @@ export class ToastDefaultExample {
       size: this.size,
       timeout: this.timeout
     });
-  }
+  };
 
   private updateFirst = () => {
     const toast = AppToaster.getToasts()[0];
@@ -60,18 +60,18 @@ export class ToastDefaultExample {
       message: 'UPDATED MESSAGE',
       intent: 'primary'
     });
-  }
+  };
 
   private dismissFirst = () => {
     const toast = AppToaster.getToasts()[0];
     AppToaster.dismiss(toast.key!, false);
-  }
+  };
 
   private renderOptions() {
     return [
       m('h5', 'Position'),
       m(Select, {
-        options: Object.keys(ToasterPosition).map(key => ToasterPosition[key]),
+        options: getObjectKeys(ToasterPosition).map(key => ToasterPosition[key]),
         onchange: (e: Event) => this.position = (e.target as HTMLInputElement).value as ToasterPosition,
         size: 'xs'
       }),

@@ -4,7 +4,7 @@
 import m from 'mithril';
 import classnames from 'classnames';
 import debounce from 'lodash.debounce';
-import { Classes, isFunction, Keys, safeCall, IAttrs, getClosest } from '../../_shared';
+import { Classes, isFunction, Keys, safeCall, IAttrs } from '../../_shared';
 import { AbstractComponent } from '../abstract-component';
 import { Icon, Icons } from '../icon';
 import { List, IListAttrs, IListItemAttrs, ListItem } from '../list';
@@ -314,7 +314,7 @@ export class QueryList<T> extends AbstractComponent<IQueryListAttrs<T>> {
     }
 
     return listItem;
-  }
+  };
 
   private setControlledAttrs() {
     const { activeIndex, query } = this.attrs;
@@ -365,7 +365,7 @@ export class QueryList<T> extends AbstractComponent<IQueryListAttrs<T>> {
   private handleInput = (e: Event) => {
     this.handleSearchDebounce(e);
     (e as any).redraw = false;
-  }
+  };
 
   private handleSearchDebounce = debounce((e: Event) => {
     const value = (e.target as HTMLInputElement).value;
@@ -385,19 +385,19 @@ export class QueryList<T> extends AbstractComponent<IQueryListAttrs<T>> {
     if (this.inputEl) {
       this.inputEl.focus();
     }
-  }
+  };
 
   private handleSelect = (index: number, isDisabled: boolean, e: Event) => {
     const { onSelect } = this.attrs;
     const target = e.target as HTMLElement;
     const selectedItem = this.filteredItems[index];
-    const actionsEl = getClosest(target, `.${Classes.LIST_ITEM_CONTENT_RIGHT}`);
+    const actionsEl = target.closest(`.${Classes.LIST_ITEM_CONTENT_RIGHT}`);
 
     if (selectedItem != null && !actionsEl && !isDisabled) {
       this.updateActiveIndex(index);
       safeCall(onSelect, selectedItem, e, index);
     } else (e as any).redraw = false;
-  }
+  };
 
   private handleKeyDown = (e: KeyboardEvent) => {
     const key = e.which;
@@ -426,7 +426,7 @@ export class QueryList<T> extends AbstractComponent<IQueryListAttrs<T>> {
     }
 
     (e as any).redraw = false;
-  }
+  };
 
   private moveActiveIndex(direction: Direction) {
     const { activeIndex } = this;

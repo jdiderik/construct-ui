@@ -5,7 +5,7 @@ import { IInputAttrs, Input } from '../input';
 import { IButtonAttrs, Button } from '../button';
 import { IPopoverAttrs, Popover } from '../popover';
 import { TextArea } from '../text-area';
-import { Classes, safeCall, Keys, getClosest } from '../../_shared';
+import { Classes, safeCall, Keys } from '../../_shared';
 
 export interface IInputPopoverAttrs extends Omit<IPopoverAttrs, 'content'> {
   /**
@@ -133,8 +133,6 @@ export class InputPopover extends AbstractComponent<IInputPopoverAttrs> {
     const { type, inputAttrs, placeholder } = this.attrs;
     const component = type === 'textarea' ? TextArea : Input;
 
-    console.log(this.value);
-
     return m(component, {
       autofocus: true,
       rows: 5,
@@ -148,9 +146,10 @@ export class InputPopover extends AbstractComponent<IInputPopoverAttrs> {
 
   private handleOnKeyDown = (e: KeyboardEvent) => {
     const { type, submitOnEnter } = this.attrs;
+    const target = e.target as HTMLElement;
 
     if (e.which === Keys.ENTER && type === 'input' && submitOnEnter) {
-      const contentEl = getClosest(e.target, `.${Classes.INPUT_POPOVER_CONTENT}`)!;
+      const contentEl = target.closest(`.${Classes.INPUT_POPOVER_CONTENT}`)!;
       const submitBtnEl = contentEl.querySelector(`.${Classes.POPOVER_DISSMISS}`) as HTMLElement;
       submitBtnEl.click();
 
@@ -158,13 +157,13 @@ export class InputPopover extends AbstractComponent<IInputPopoverAttrs> {
     }
 
     (e as any).redraw = false;
-  }
+  };
 
   private handleOnSubmit = (e: Event) => {
     const { submitButtonAttrs } = this.attrs;
     this.attrs.onSubmit(this.value);
     safeCall(submitButtonAttrs!.onclick, e);
-  }
+  };
 
   private handleOnOpened = (content: HTMLElement) => {
     const { type, hightlightOnOpen, onOpened } = this.attrs;
@@ -176,11 +175,11 @@ export class InputPopover extends AbstractComponent<IInputPopoverAttrs> {
     }
 
     safeCall(onOpened);
-  }
+  };
 
   private handleOnClosed = () => {
     const { onClosed } = this.attrs;
 
     safeCall(onClosed);
-  }
+  };
 }
